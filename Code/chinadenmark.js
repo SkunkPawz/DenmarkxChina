@@ -46,19 +46,34 @@ document.querySelectorAll('[data-i18n]').forEach(el => {chinese[el.dataset.i18n]
 chinese.briefSuccess = '您的简报已下载。请将其分享给您的合作联系人。';
 document.querySelectorAll('[data-i18n-alt]').forEach(el => {chinese[el.dataset.i18nAlt] = el.alt;});
 translations.zh = chinese;
+translations.da = window.danishTranslations;
+projects.forEach(project => {
+  const danish = window.danishProjects[project.id];
+  for (const field of ['title', 'tag', 'description']) project[field].push(danish[field]);
+});
+Object.assign(translations.en, {
+  languageLabel:'Language',closeLabel:'Close',filtersLabel:'Portfolio filters',navigationLabel:'Main navigation',projectLabel:'View project: ',
+  pageTitle:'Best of Denmark × Shmel | Danish inspiration. Chinese possibilities.',briefFileHeading:'Partnership brief',
+  heroEyebrow:'DENMARK MEETS CHINA',flowEyebrow:'01 / FLOW',diveEyebrow:'02 / DEEP DIVE',currentEyebrow:'03 / CURRENT',brandHomeLabel:'Best of Denmark home',heroScrollLabel:'Scroll to introduction'
+});
+Object.assign(translations.zh, {
+  languageLabel:'语言',closeLabel:'关闭',filtersLabel:'作品分类',navigationLabel:'主导航',projectLabel:'查看作品：',
+  pageTitle:'Best of Denmark × Shmel | 丹麦之选',briefFileHeading:'合作需求',
+  heroEyebrow:'丹麦与中国',flowEyebrow:'01 / 节奏',diveEyebrow:'02 / 深入探索',currentEyebrow:'03 / 新的潮流',brandHomeLabel:'丹麦之选首页',heroScrollLabel:'滚动至简介'
+});
 let language = 'zh';
-try {const saved = localStorage.getItem('best-of-denmark-language'); if(saved === 'en' || saved === 'zh') language = saved;} catch {}
+try {const saved = localStorage.getItem('best-of-denmark-language'); if(['en','zh','da'].includes(saved)) language = saved;} catch {}
 let filter = 'all';
 let activeProject = null;
 const grid = document.getElementById('project-grid');
 const projectDialog = document.getElementById('project-dialog');
 const briefDialog = document.getElementById('brief-dialog');
-const index = () => language === 'zh' ? 0 : 1;
+const index = () => ({zh:0,en:1,da:2}[language]);
 function renderProjects() {
   grid.replaceChildren();
   projects.filter(p => filter === 'all' || p.category === filter).forEach(p => {
     const button = document.createElement('button'); button.className='project-card'; button.type='button';
-    button.setAttribute('aria-label', (language === 'zh' ? '查看作品：' : 'View project: ') + p.title[index()]);
+    button.setAttribute('aria-label', translations[language].projectLabel + p.title[index()]);
     button.innerHTML=`<div class="project-image"><img src="../Assets/portfolio/${p.id}.webp" alt="" loading="lazy" width="640" height="474"></div><div class="project-meta"><h3>${p.title[index()]}</h3><span aria-hidden="true">↗</span></div><p>${p.tag[index()]}</p>`;
     button.addEventListener('click', () => {activeProject=p; renderDetail(); openDialog(projectDialog);});
     grid.append(button);
@@ -74,19 +89,23 @@ function renderDetail() {
   projectDialog.setAttribute('aria-labelledby','detail-title');
 }
 function applyLanguage() {
-  document.documentElement.lang=language==='zh'?'zh-CN':'en';
+  document.documentElement.lang=language==='zh'?'zh-CN':language;
   document.querySelectorAll('[data-i18n-alt]').forEach(el => {el.alt=translations[language][el.dataset.i18nAlt];});
   document.querySelectorAll('[data-i18n]').forEach(el => {const value=translations[language][el.dataset.i18n]; if(value!==undefined) el.innerHTML=value;});
-  document.getElementById('language').innerHTML=language==='zh'?'EN <span>⇄</span> 中文':'中文 <span>⇄</span> EN';
-  document.getElementById('language').setAttribute('aria-label',language==='zh'?'Switch to English':'切换到中文');
-  document.querySelectorAll('.close-dialog').forEach(el=>el.setAttribute('aria-label',language==='zh'?'关闭':'Close'));
-  document.querySelector('.filters').setAttribute('aria-label',language==='zh'?'作品分类':'Portfolio filters');
-  document.querySelector('nav').setAttribute('aria-label',language==='zh'?'主导航':'Main navigation');
-  document.title=language==='zh'?'Best of Denmark × Shmel | 丹麦之选':'Best of Denmark × Shmel | Danish inspiration. Chinese possibilities.';
+  document.getElementById('language').value=language;
+  document.getElementById('language').setAttribute('aria-label',translations[language].languageLabel);
+  document.querySelectorAll('.close-dialog').forEach(el=>el.setAttribute('aria-label',translations[language].closeLabel));
+  document.querySelector('.filters').setAttribute('aria-label',translations[language].filtersLabel);
+  document.querySelector('nav').setAttribute('aria-label',translations[language].navigationLabel);
+  document.title=translations[language].pageTitle;
+  document.querySelector('meta[name="description"]').content=translations[language].heroDescription;
+  document.querySelector('.site-header .brand').setAttribute('aria-label',translations[language].brandHomeLabel);
+  document.querySelector('.hero-bottom > a').setAttribute('aria-label',translations[language].heroScrollLabel);
+  briefDialog.setAttribute('aria-label',translations[language].briefTitle);
   document.getElementById('brief-status').textContent='';
   renderProjects(); renderDetail();
 }
-document.getElementById('language').addEventListener('click',()=>{language=language==='zh'?'en':'zh';try{localStorage.setItem('best-of-denmark-language',language);}catch{} applyLanguage();});
+document.getElementById('language').addEventListener('change',event=>{language=event.target.value;try{localStorage.setItem('best-of-denmark-language',language);}catch{} applyLanguage();});
 document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{filter=button.dataset.filter;document.querySelectorAll('[data-filter]').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-pressed',String(b===button));});renderProjects();}));
 function openDialog(dialog) {dialog.showModal();document.body.classList.add('modal-open');}
 document.querySelectorAll('dialog').forEach(dialog=>{dialog.querySelector('.close-dialog').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>document.body.classList.remove('modal-open'));dialog.addEventListener('click',event=>{if(event.target===dialog){const r=dialog.getBoundingClientRect();if(event.clientX<r.left||event.clientX>r.right||event.clientY<r.top||event.clientY>r.bottom) dialog.close();}});});
@@ -94,7 +113,7 @@ document.getElementById('open-brief').addEventListener('click',()=>{briefDialog.
 document.getElementById('brief-form').addEventListener('submit',event=>{
   event.preventDefault(); const data=new FormData(event.target);
   const interest=event.target.elements.interest.selectedOptions[0].textContent;
-  const text=['BEST OF DENMARK × SHMEL','合作需求 / Partnership brief','',`${translations[language].formName}: ${data.get('company')}`,`${translations[language].formEmail}: ${data.get('email')||'—'}`,`${translations[language].formInterest}: ${interest}`,'',translations[language].formMessage,data.get('message')].join('\n');
+  const text=['BEST OF DENMARK × SHMEL',translations[language].briefFileHeading,'',`${translations[language].formName}: ${data.get('company')}`,`${translations[language].formEmail}: ${data.get('email')||'—'}`,`${translations[language].formInterest}: ${interest}`,'',translations[language].formMessage,data.get('message')].join('\n');
   const url=URL.createObjectURL(new Blob(['\uFEFF'+text],{type:'text/plain;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='Best-of-Denmark-partnership-brief.txt';document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
   document.getElementById('brief-status').textContent=translations[language].briefSuccess;
 });
